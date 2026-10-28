@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mera AI</title>
+<style>
+body{margin:0;font-family:sans-serif;background:#111;color:#eee;display:flex;flex-direction:column;height:100vh}
+#chat{flex:1;overflow:auto;padding:12px}
+.m{margin:8px 0;padding:10px;border-radius:10px;max-width:85%;white-space:pre-wrap}
+.u{background:#2563eb;margin-left:auto}.a{background:#262626}
+#bar{display:flex;gap:6px;padding:8px;background:#1b1b1b}
+#t{flex:1;padding:10px;border-radius:8px;border:0}
+button{padding:10px;border:0;border-radius:8px}
+</style></head><body>
+<div id="chat"></div>
+<div id="bar">
+<label>📎<input type="file" id="f" accept="image/*" hidden></label>
+<input id="t" placeholder="Poochho...">
+<button onclick="send()">Bhejo</button>
+</div>
+<script>
+const SYS=`Tum ek honest assistant ho (Hinglish mein jawab do).
+Trading chart par: trend, support/resistance, pattern batao, phir entry zone, stop loss, target aur risk:reward do. Kabhi guarantee ya accuracy % mat do; hamesha batao ki ye probability hai, pakki baat nahi. Agar setup kamzor hai to saaf bolo "trade mat lo".
+Study aur business idea par: sach aur practical raho, risk bhi batao, jahan pakka nahi ho wahan "pakka nahi pata" bolo.`;
+let key=localStorage.getItem("k")||prompt("Gemini API key daalo")||"";
+localStorage.setItem("k",key);
+let hist=[];
+const chat=document.getElementById("chat");
+function add(c,x){const d=document.createElement("div");d.className="m "+c;d.textContent=x;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d}
+function b64(f){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(",")[1]);fr.readAsDataURL(f)})}
+async function send(){
+ const t=document.getElementById("t"),fi=document.getElementById("f"),f=fi.files[0];
+ if(!t.value&&!f)return;
+ const parts=[{text:t.value||"Is chart ka analysis karo"}];
+ if(f)parts.push({inline_data:{mime_type:f.type,data:await b64(f)}});
+ add("u",t.value+(f?" 📷":""));t.value="";fi.value="";
+ hist.push({role:"user",parts});
+ const w=add("a","Soch raha hoon...");
+ try{
+  const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+key,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({systemInstruction:{parts:[{text:SYS}]},contents:hist})});
+  const j=await r.json();
+  const a=j.candidates[0].content.parts[0].text;
+  w.textContent=a;hist.push({role:"model",parts:[{text:a}]});
+ }catch(e){w.textContent="Error: API key ya model name check karo";hist.pop()}
+}
+</script></body></html>
